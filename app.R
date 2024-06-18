@@ -213,7 +213,7 @@ server <- function(input, output, session) {
     
   }
   
-  CelEsT <- read.table("./www/allthree_equalweights.txt",
+  CelEsT <- read.table("./www/CelEsT_GRN.txt",
                        sep = "\t",
                        header = TRUE)
   
