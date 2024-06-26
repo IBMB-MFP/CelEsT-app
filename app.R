@@ -104,9 +104,9 @@ ui <- dashboardPage(
                        p(HTML("This tool helps you estimate transcription factor (TF) activity in <em>C. elegans</em>.<br><br>
                         In the tabs on the left, you will find two different analyses available to you:<br><br>
                         
-                        1) In 'TF act from DE stats' you can upload statistics from an existing differential expression analysis to estimate differential TF activity. <br><br>
+                        1) In 'TF act from DE stats' you can input statistics from an existing differential expression analysis to estimate differential TF activity. <br><br>
                         
-                        2) In 'DE & TF act from counts' you can upload raw (i.e. not normalised) gene-level RNA-seq read counts. The app will perform a differential expression analysis using <em>DESeq2</em> and then estimate TF activities based on the DE statistics.
+                        2) In 'DE & TF act from counts' you can input raw (i.e. not normalised) gene-level RNA-seq read counts. The app will perform a differential expression analysis using <em>DESeq2</em> and then estimate TF activities based on the DE statistics.
                         You can also opt to exclude noise from any effects of your experimental intervention on developmental speed by estimating sample ages using the <em>RAPToR</em> package and incorporating this information in the DE analysis. <br><br>
                         
                         Make sure your data is formatted correctly to ensure accurate results. <em>Cel</em>EsT accepts tab- or space-delimited text files. Gene IDs should be in the first column and ideally be WormBase Gene IDs (e.g. WBGene00020142), sequence names (e.g. T01C8.1) or entrezGene IDs (e.g. 181727). Below you can download sample data for each analysis:<br><br>
@@ -143,11 +143,12 @@ ui <- dashboardPage(
                   solidHeader = TRUE,
                   collapsible = TRUE,
                   width = 12,
-                  fileInput("userdata", "Upload DE_stats", placeholder = "Two-column tab-separated file with gene IDs in 1st column and DE stats in 2nd column"),
+                  fileInput("userdata", "Input DE_stats", placeholder = "Two-column tab-separated file with gene IDs in 1st column and DE stats in 2nd column"),
                   actionButton("compute", "Compute TF activities", class = "btn-primary"),
                   textOutput("status_message")
                 )
               ),
+              actionButton("reset_button", "Reset", style = "display: none;"),
               fluidRow(
                 uiOutput("volcano_ui")
               ),
@@ -165,14 +166,16 @@ ui <- dashboardPage(
                   solidHeader = TRUE,
                   collapsible = TRUE,
                   width = 12,
-                  fileInput("counts_userdata", "Upload Data", placeholder = "Tab-separated file with gene IDs in first column and sample names as column header"),
-                  textInput("control_samples", "Control Samples", placeholder = "Enter control sample names separated by commas"),
-                  textInput("treatment_samples", "Treatment Samples", placeholder = "Enter treatment sample names separated by commas"),
+                  fileInput("counts_userdata", "Input Data", placeholder = "Tab-separated file with gene IDs in first column and sample names as column headers"),
+                  tableOutput("column_names"),
+                  textInput("control_samples", "Control Samples", placeholder = "Enter control sample names separated by commas (without quotation marks)"),
+                  textInput("treatment_samples", "Treatment Samples", placeholder = "Enter treatment sample names separated by comma (without quotation marks)s"),
                   checkboxInput("correct_speed", "Correct for developmental speed using RAPToR?", value = FALSE),
                   uiOutput("age_selection"),
                   actionButton("counts_compute", "Compute DE & TF activities", class = "btn-primary")
                 )
               ),
+              actionButton("reset_button2", "Reset", style = "display: none;"),
               fluidRow(
                 uiOutput("counts_volcano_ui")
               ),
@@ -223,6 +226,9 @@ server <- function(input, output, session) {
                                header = TRUE,
                                sep = "\t")
 
+#### CODE FOR ANALYSIS FROM DE STATS ####
+  
+  
   # Reactive expression to handle data upload
   uploading <- reactive({
     req(input$userdata)
@@ -233,6 +239,20 @@ server <- function(input, output, session) {
   
   clearText <- observeEvent(input$compute, {
     output$status_message <- renderText(NULL)
+  })
+  
+  observeEvent(input$reset_button, {
+    # Reload the session
+    session$reload()
+    runjs('document.getElementById("tab1status").style.display = "none";')
+    
+  })
+  
+  observeEvent(input$reset_button2, {
+    # Reload the session
+    session$reload()
+    runjs('document.getElementById("tab2status").style.display = "none";')
+    
   })
   
   # Reactive expression to handle computation
@@ -268,6 +288,7 @@ server <- function(input, output, session) {
         paste0(nmbr_dupl, " genes have been removed from analysis due to duplicated gene IDs"),
         easyClose = TRUE
       ))
+
       
     } else {
       
@@ -277,7 +298,6 @@ server <- function(input, output, session) {
     
     userdata <- userdata[, 2, drop = FALSE]
     
-    # replace NAs with 0s
     userdata[is.na(userdata)] <- 0
     
     gseq_check <- any(str_remove(row.names(userdata), "\\.[a-z]{1,2}$") %in% CelEsT_BM$wormbase_gseq)
@@ -316,9 +336,6 @@ server <- function(input, output, session) {
       row.names(userdata) <- str_remove(row.names(userdata), "\\.[a-z]{1,2}$")
       
     }
-    # 
-    # # Show the notification in the center
-    # runjs('document.getElementById("tab1status").style.display = "block";')
     
     userdata_decouple <- decoupleR::decouple(
       mat = userdata[, 1, drop = FALSE], 
@@ -354,6 +371,7 @@ server <- function(input, output, session) {
   
   # Reactive expression to prepare data for plot
   userdata_forplot <- reactive({
+    
     userdata_decouple <- computation()
     
     userdata_decouple_wide <- pivot_wider(
@@ -430,7 +448,7 @@ server <- function(input, output, session) {
       
     )
     
-    userdata_forDT <- userdata_forDT[order(userdata_forDT$Score, decreasing = TRUE), ]
+    userdata_forDT <- userdata_forDT[order(userdata_forDT$Pval), ]
     
     userdata_forDT[, c("WormBase_MOR", "UniProt_MOR")] <- str_replace_all(unlist(userdata_forDT[, c("WormBase_MOR", "UniProt_MOR")]), "-1", "REPRESSOR")
     userdata_forDT[, c("WormBase_MOR", "UniProt_MOR")] <- str_replace_all(unlist(userdata_forDT[, c("WormBase_MOR", "UniProt_MOR")]), "0", "BIFUNCTIONAL")
@@ -460,7 +478,7 @@ server <- function(input, output, session) {
       solidHeader = TRUE,
       collapsible = TRUE,
       width = 12,
-      downloadButton("downloadData", "Download Data Table", class = "btn-success"),
+      downloadButton("downloadData", "Save Data Table", class = "btn-success"),
       DTOutput("data_table")
     )
   })
@@ -506,18 +524,19 @@ server <- function(input, output, session) {
   
   observe({
     if (fromDE_error_occurred()) {
-      # Reset the action button (this is a logical reset, not a visual one)
-      session$sendCustomMessage(type = "resetButton", message = list(id = "compute"))
+      shinyjs::show("reset_button")
+    } else {
+      hide("reset_button")
     }
   })
   
-  #### CODE FOR ANALYSIS FROM COUNTS ####
-  
+#### CODE FOR ANALYSIS FROM COUNTS ####
+
   observeEvent(input$counts_compute, {
     # Use isolate to update the reactiveVal only when the button is clicked
     control_samples <- isolate(input$control_samples)
     treatment_samples <- isolate(input$treatment_samples)
-
+    
   })
   
   observe({
@@ -543,32 +562,26 @@ server <- function(input, output, session) {
   
   
   observeEvent(input$counts_compute, {
-    # Example condition for showing a warning
     if (is.null(input$counts_userdata)) {
-      runjs(paste0('document.getElementById("tab2status").innerHTML = "', "Please upload a file before pressing compute", '";'))
+      runjs(paste0('document.getElementById("tab2status").innerHTML = "', "Please input a file before pressing compute", '";'))
     } else{
       runjs('document.getElementById("tab2status").style.display = "block";')
     }
   })
   
-  # Reactive expression to handle data upload
   uploading_counts <- reactive({
     req(input$counts_userdata)
     
     userdata <- read.table(input$counts_userdata$datapath, header = TRUE)
-    # userdata <- read.table("~/Cel_GRN_manuscript/input/testcounts_forshiny.txt", header = TRUE)
-    
+
     userdata[is.na(userdata)] <- 0
     userdata
   })
   
-  ## FOR DEBUG delete later
-  # uploading_counts <- read.table("~/Desktop/krieg_testcounts_forcelest.txt", header = TRUE, sep = "\t")
-  # control_samples <- "SRR2040653, SRR2040654, SRR2040655"
-  # treatment_samples <- "SRR2040656, SRR2040657, SRR2040658"
-  # age_selection <- "Cel_larv_YA"
-  
-  ## Reactive expression for initial data processing
+  output$column_names <- renderPrint({
+    req(uploading_counts())
+    colnames(uploading_counts())[2:ncol(uploading_counts())]
+  })
   
   counts_data_process <- eventReactive(input$counts_compute, {
     
@@ -582,8 +595,7 @@ server <- function(input, output, session) {
     
     # setting gene names directly will give error in case of duplications.. 
     uploading_counts <- uploading_counts()
-    # uploading_counts <- userdata
-    
+
     geneids_fromuserdata <- uploading_counts[, 1]
     
     if(any(duplicated(geneids_fromuserdata))){
@@ -591,9 +603,9 @@ server <- function(input, output, session) {
       nmbr_dupl <- sum((duplicated(geneids_fromuserdata)|duplicated(geneids_fromuserdata, fromLast = TRUE)))
       
       uniquegeneids_fromuserdata <- geneids_fromuserdata[!(duplicated(geneids_fromuserdata)|duplicated(geneids_fromuserdata, fromLast = TRUE))]
-      userdata <- userdata[match(uniquegeneids_fromuserdata, userdata$geneid), ]
+      uploading_counts <- uploading_counts[match(uniquegeneids_fromuserdata, uploading_counts$geneid), ]
       
-      row.names(userdata) <- uniquegeneids_fromuserdata
+      row.names(uploading_counts) <- uniquegeneids_fromuserdata
       
       showModal(modalDialog(
         title = "Duplicated Genes Removed",
@@ -677,29 +689,24 @@ server <- function(input, output, session) {
       
       counts_to_tpm <- function(counts, featureLength, meanFragmentLength) {
         
-        # Ensure valid arguments.
         stopifnot(length(featureLength) == nrow(counts))
         stopifnot(length(meanFragmentLength) == ncol(counts))
         
-        # Compute effective lengths of features in each library.
         effLen <- do.call(cbind, lapply(1:ncol(counts), function(i) {
           featureLength - meanFragmentLength[i] + 1
         }))
         
-        # Exclude genes with length less than the mean fragment length.
         idx <- apply(effLen, 1, function(x) min(x) > 1)
         temp_counts <- counts[idx,]
         temp_effLen <- effLen[idx,]
         temp_featureLength <- featureLength[idx]
         
-        # Process one column at a time.
         tpm <- do.call(cbind, lapply(1:ncol(temp_counts), function(i) {
           rate = log(temp_counts[,i]) - log(temp_effLen[,i])
           denom = log(sum(exp(rate)))
           exp(rate - denom + log(1e6))
         }))
         
-        # Copy the row and column names from the original matrix.
         colnames(tpm) <- colnames(temp_counts)
         rownames(tpm) <- rownames(temp_counts)
         
@@ -708,8 +715,7 @@ server <- function(input, output, session) {
       }
       
       temp_data <- counts_data_process()  
-      # temp_data <- uploading_counts  
-      
+
       control_samples <- isolate(input$control_samples)
       control_samples <- str_remove_all(control_samples, " ")
       control_samples <- unlist(str_split(control_samples, ","))
@@ -721,10 +727,11 @@ server <- function(input, output, session) {
       # Show the notification in the center
       runjs(paste0('document.getElementById("tab2status").innerHTML = "', "The analysis will take a few minutes. Do not navigate away from this page. Current step: <b>Preparing to estimate sample ages</b>", '";'))
       
-      # tempref <- prepare_refdata(input$expected_age, 'wormRef', 5000)
-      # tempref <-  prepare_refdata(age_selection, 'wormRef', 5000)
-      
-      # First I need to convert the counts to TPM 
+      if (any(!colnames(temp_data)[2:ncol(temp_data)] %in% c(control_samples, treatment_samples))) {
+
+        showNotification("Warning: additional columns are present in uploaded data", type = "warning", duration = NULL)
+        
+      }
       
       my_temp_lengths <- sapply(row.names(temp_data), function(x){
         
@@ -740,20 +747,16 @@ server <- function(input, output, session) {
                                      featureLength = my_temp_lengths[gene_there],
                                      meanFragmentLength = as.numeric(rep(100, times = ncol(temp_data))))
       
-      # remove genes with zero expression across all samples
       temp_data_TPM_expressed <- temp_data_TPM[apply(temp_data_TPM, 1, function(x){any(x != 0)}), ]
       
-      # transform for later use with RAPToR as per RAPToR vignette
       temp_data_TPM_expressed_norm <- limma::normalizeBetweenArrays(temp_data_TPM_expressed, method = "quantile")
       temp_data_TPM_expressed_norm_log <- log1p(temp_data_TPM_expressed_norm) # log1p(x) = log(x + 1)
       
-      # change to WBIDs
       row.names(temp_data_TPM_expressed_norm_log) <- wormRef::Cel_genes[match(row.names(temp_data_TPM_expressed_norm_log), wormRef::Cel_genes$sequence_name), "wb_id"]
       
-      # Show the notification in the center
       runjs(paste0('document.getElementById("tab2status").innerHTML = "', "The analysis will take a few minutes. Do not navigate away from this page. Current step: <b>Estimating sample ages</b>", '";'))
       
-      temp_sample_ae <- RAPToR::ae(samp = temp_data_TPM_expressed_norm_log,                         # input gene expression matrix
+      temp_sample_ae <- RAPToR::ae(samp = temp_data_TPM_expressed_norm_log,                         
                                    refdata = tempref())
       
       temp_sample_ae$age.estimates[c(control_samples, treatment_samples), ]
@@ -765,17 +768,13 @@ server <- function(input, output, session) {
     }
   })
   
-  # Reactive expression to handle age correction and perform DE analysis
   counts_DE <- reactive({
     req(input$counts_compute)
     
     if (input$correct_speed) {
-      # Use agecorr_process() result if age correction is required
+
       age_estimates <- req(agecorr_process())
-      
-      # age_estimates <- temp_sample_ae$age.estimates
-      
-      # Show the notification in the center
+    
       runjs(paste0('document.getElementById("tab2status").innerHTML = "', "The analysis will take a few minutes. Do not navigate away from this page. Current step: <b>Performing DE analysis </b>", '";'))
       
       tryCatch({
@@ -785,9 +784,7 @@ server <- function(input, output, session) {
         
         tempref <- tempref()
         
-        # age_estimates <- agecorr_process()
         temp_data <- counts_data_process()
-        # temp_data <- uploading_counts
         
         control_samples <- input$control_samples
         control_samples <- str_remove_all(control_samples, " ")
@@ -831,32 +828,19 @@ server <- function(input, output, session) {
         interp_count[interp_count < 0] <- 0
         interp_count <- round(interp_count)
         
-        # now I have the age estimates. I need to do GLM with edgeR with glmFit. Include batch (sample vs reference data), variable of interest (mutation, group reference with control) and developmental time modelled with splines ( )
-        # may need to determine optimal number of spline df by fitting models and using elbow plot (with automatic knee finder)
-        
-        # inital step; fit with fixed df for splines.
-        # then figure out how to try multiple models and choose optimal.
-        
-        # ok now will try to implement this having understood it better
-        
         df_SSQ <- sapply(1:8, function(df_param){
           
           sum(residuals(lm(t(interp_tpm) ~ splines::ns(interp_time, df = df_param))) ^2)
           
         })
-        
-        # here find the point at which the curve plateaus appropriately
-        # threshold is arbitrary but 0.1 seems too high.
+
         threshold <- 0.01
         diff_1 <- diff(df_SSQ)
         
         temp_plateau <- which.max((diff_1 / diff_1[1]) < threshold) 
         
-        ## Having found the plateau, proceed to fit model with appropriate spline df 
-        
         temp_data <- temp_data[apply(temp_data, 1, max) > 5, ]
         
-        # change to WBIDs
         uniquegeneids_fromtempdata <- row.names(temp_data)
         uniqueIDs_toWBID <- wormRef::Cel_genes[match(uniquegeneids_fromtempdata, wormRef::Cel_genes$sequence_name), c("wb_id", "sequence_name")]
         
@@ -877,11 +861,8 @@ server <- function(input, output, session) {
         
         combine_coldata$strain <- factor(combine_coldata$strain, levels = c("control", "treatment"))
         combine_coldata$batch <- factor(combine_coldata$batch, levels = c("sample", "reference"))
-        
-        # here this was missing from the vignette but I think its necessary)
+
         row.names(combine_coldata) <- c(row.names(age_estimates), colnames(interp_count))
-        
-        # estimate dispersions on sample data alone
         
         dd0 <- DESeqDataSetFromMatrix(countData = combine_count[, 1:length(c(control_samples, treatment_samples))],
                                       colData = combine_coldata[1:length(c(control_samples, treatment_samples)), ],
@@ -893,9 +874,7 @@ server <- function(input, output, session) {
         d0[is.na(d0)] <- 0 # remove NAs
         
         formula <- paste0("~ splines::ns(time, df = ", temp_plateau, ") + batch + strain")
-        
-        # I have the problem that if I use a straight numerical number 3 for the spline df, it works, but if I feed it an object that equals 3 (ie temp_plateau), it doesnt work.
-        # ok this appears to be solved by defining formula and using as.formula
+
         dd1 <-  DESeqDataSetFromMatrix(
           countData = combine_count,
           colData = combine_coldata,
@@ -903,7 +882,7 @@ server <- function(input, output, session) {
         )
         
         dd1 <- estimateSizeFactors(dd1)
-        # inject dispersions from sample-only model
+
         dispersions(dd1) <- d0
         
         dd1 <- nbinomWaldTest(dd1)
@@ -915,16 +894,15 @@ server <- function(input, output, session) {
 
         runjs(paste0('document.getElementById("tab2status").innerHTML = "', e$message, '";'))
         counts_error_occurred(TRUE)
-        return("An error occurred")
         
         
       })
     } else {
-      # Show the notification in the center
+
       runjs(paste0('document.getElementById("tab2status").innerHTML = "', "The analysis will take a few minutes. Do not navigate away from this page. Current step: <b>Performing DE analysis</b>", '";'))
       
       tryCatch({
-        # Your DE analysis code without age correction
+
         temp_data <- counts_data_process()
 
         control_samples <- isolate(input$control_samples)
@@ -938,7 +916,9 @@ server <- function(input, output, session) {
         shiny::validate(need(c(control_samples, treatment_samples) %in% colnames(temp_data), "Control/treatment samples do not match column names"))
         
         if (any(!colnames(temp_data)[2:ncol(temp_data)] %in% c(control_samples, treatment_samples))) {
-          showNotification("Warning: additional columns are present in uploaded data", type = "warning")
+
+          showNotification("Warning: additional columns are present in uploaded data", type = "warning", duration = NULL)
+          
         }
         
         temp_data <- temp_data[, c(control_samples, treatment_samples)]
@@ -960,7 +940,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Reactive expression to handle computation
+
   counts_computation <- reactive({
     
     req(counts_DE())
@@ -968,12 +948,11 @@ server <- function(input, output, session) {
     if(is.character(counts_DE())){
 
     } else {
-    # Show the notification in the center
+
     runjs(paste0('document.getElementById("tab2status").innerHTML = "', "The analysis will take a few minutes. Do not navigate away from this page. Current step: <b>TF activity computation started</b>", '";'))
     }
       
     DEdata <- counts_DE()
-    # DEdata <- result
     
     control_samples <- input$control_samples
     control_samples <- str_remove_all(control_samples, " ")
@@ -983,13 +962,10 @@ server <- function(input, output, session) {
     treatment_samples <- str_remove_all(treatment_samples, " ")
     treatment_samples <- unlist(str_split(treatment_samples, ","))
     
-    # restrict to genes that we have in CelEsT
     DEdata <- DEdata[str_remove(row.names(DEdata), "\\.[a-z]{1,2}") %in% unlist(CelEsT_BM), ]
     
-    # setting gene names directly will give error in case of duplications.. 
     geneids_fromDEdata <- DEdata[, 1]
     
-    # replace NAs with 0s
     DEdata[is.na(DEdata)] <- 0
     
     gseq_check <- any(str_remove(row.names(DEdata), "\\.[a-z]{1,2}$") %in% CelEsT_BM$wormbase_gseq)
@@ -1024,7 +1000,6 @@ server <- function(input, output, session) {
       
     } else {
       
-      # remove trailing letter from CDS id if applicable
       row.names(DEdata) <- str_remove(row.names(DEdata), "\\.[a-z]{1,2}$")
       
     }
@@ -1039,14 +1014,12 @@ server <- function(input, output, session) {
       consensus_score = FALSE
     )
     
-    # Hide the notification
     runjs('document.getElementById("tab2status").style.display = "none";')
     
     DEdata_decouple
     
   })
   
-  # Reactive expression to prepare data for plot
   DEdata_forplot <- reactive({
     req(counts_computation())
     
@@ -1128,7 +1101,7 @@ server <- function(input, output, session) {
       
     )
     
-    TFactdata_forDT <- TFactdata_forDT[order(TFactdata_forDT$Score, decreasing = TRUE), ]
+    TFactdata_forDT <- TFactdata_forDT[order(TFactdata_forDT$Pval), ]
     
     TFactdata_forDT[, c("WormBase_MOR", "UniProt_MOR")] <- str_replace_all(unlist(TFactdata_forDT[, c("WormBase_MOR", "UniProt_MOR")]), "-1", "REPRESSOR")
     TFactdata_forDT[, c("WormBase_MOR", "UniProt_MOR")] <- str_replace_all(unlist(TFactdata_forDT[, c("WormBase_MOR", "UniProt_MOR")]), "0", "BIFUNCTIONAL")
@@ -1142,9 +1115,6 @@ server <- function(input, output, session) {
     
     req(counts_DE())
     DEdata <- counts_DE()
-    # DEdata <- result
-    # TFactdata_decouple <- as.data.frame(results(tempdds))
-    # add other gene IDs to the raw DE output
     
     DEdata <- as.data.frame(DEdata)
     
@@ -1172,24 +1142,22 @@ server <- function(input, output, session) {
   
   observe({
     if (counts_error_occurred()) {
-      # Reset the action button (this is a logical reset, not a visual one)
-      session$sendCustomMessage(type = "resetButton", message = list(id = "counts_compute"))
+      shinyjs::show("reset_button2")
+    } else {
+      hide("reset_button2")
     }
   })
 
   observe({
     if (input$correct_speed) {
-      # Reset the action button (this is a logical reset, not a visual one)
-      session$sendCustomMessage(type = "resetButton", message = list(id = "counts_compute"))
+      shinyjs::show("reset_button2")
+    } else {
+      hide("reset_button2")
     }
   })
-  
-  ## here render outputs
-  # want volcano plot, TF activities, raw DE and age estimates (latter if applicable)
-  
+
   output$counts_TF_volcano <- renderPlot({
     data <- DEdata_forplot()
-    #     data <- DEdata_forbubbleplot
     
    tempcolours_for_plot <- map2color(data$p_val, pal = colorRampPalette(c("grey", "grey", "grey", "red", "red", "red"))(100))
     
@@ -1209,14 +1177,12 @@ server <- function(input, output, session) {
       xlab("TF activity") 
   })
   
-  # Render the TF activities DataTable
   output$counts_TF_data_table <- renderDT({
     data <- TFactdata_forDT()
     datatable(data,
               rownames = FALSE)
   }, options = list(pageLength = 10))  # You can adjust the number of rows displayed per page
   
-  # Download handler for the DataTable
   output$downloadcountsTFactData <- downloadHandler(
     filename = function() {
       paste("TFactivities-", Sys.Date(), ".txt", sep = "")
@@ -1226,7 +1192,6 @@ server <- function(input, output, session) {
     }
   )
   
-  # Render the DE DataTable
   output$counts_DE_data_table <- renderDT({
     req(DEoutdata_forDT())
     data <- DEoutdata_forDT()
@@ -1234,13 +1199,21 @@ server <- function(input, output, session) {
               rownames = FALSE)
   }, options = list(pageLength = 10))  # You can adjust the number of rows displayed per page
   
-  # Download handler for the DataTable
   output$downloadcountsDEData <- downloadHandler(
     filename = function() {
       paste("DEdata-", Sys.Date(), ".txt", sep = "")
     },
     content = function(file) {
       write.table(DEoutdata_forDT(), file, sep = "\t", row.names = FALSE, col.names = TRUE)
+    }
+  )
+  
+  output$downloadRAPTOR <- downloadHandler(
+    filename = function() {
+      paste("RAPToR_age_estimates-", Sys.Date(), ".txt", sep = "")
+    },
+    content = function(file) {
+      write.table(agecorr_process(), file, sep = "\t", row.names = FALSE, col.names = TRUE)
     }
   )
   
@@ -1251,9 +1224,7 @@ server <- function(input, output, session) {
       ageestimates_forDT <- reactive({
         
         agedata <- agecorr_process()
-        # TFactdata_decouple <- as.data.frame(results(tempdds))
-        # add other gene IDs to the raw DE output
-        
+
         agedata <- as.data.frame(agedata)
         agedata[, "sample"] <- row.names(agedata)
         agedata <- agedata[, c("sample", "age.estimate", "lb", "ub", "cor.score")]
@@ -1264,23 +1235,15 @@ server <- function(input, output, session) {
         
       })
       
-      # Add debug message
-      cat("input$correct_speed is TRUE and agecorr_process() has data\n")
       
       output$age_estimates <- renderDT({
         agedata <- ageestimates_forDT()
-        
-        # Add debug message
-        cat("Rendering age estimates DataTable\n")
         
         datatable(agedata, rownames = FALSE)
       }, options = list(pageLength = 10))
       
       output$age_DT_box <- renderUI({
-        req(agecorr_process())  # Render the UI only if the computation has been done
-        
-        # Add debug message
-        cat("Rendering age_DT_box UI\n")
+        req(agecorr_process())
         
         shinydashboard::box(
           title = "RAPToR age estimations (hours post-hatch @ 20C)",
@@ -1288,13 +1251,12 @@ server <- function(input, output, session) {
           solidHeader = TRUE,
           collapsible = TRUE,
           width = 12,
+          downloadButton("downloadRAPTOR", "Save Data Table", class = "btn-success"),
           DTOutput("age_estimates")
         )
       })
     }
   })
-  
-  ## Render the boxes to put them in
   
   output$counts_volcano_ui <- renderUI({
     req(counts_computation())  # Render the UI only if the computation has been done
@@ -1316,7 +1278,7 @@ server <- function(input, output, session) {
       solidHeader = TRUE,
       collapsible = TRUE,
       width = 12,
-      downloadButton("downloadcountsTFactData", "Download Data Table", class = "btn-success"),
+      downloadButton("downloadcountsTFactData", "Save Data Table", class = "btn-success"),
       DTOutput("counts_TF_data_table")
     )
   })
@@ -1329,7 +1291,7 @@ server <- function(input, output, session) {
       solidHeader = TRUE,
       collapsible = TRUE,
       width = 12,
-      downloadButton("downloadcountsDEData", "Download Data Table", class = "btn-success"),
+      downloadButton("downloadcountsDEData", "Save Data Table", class = "btn-success"),
       DTOutput("counts_DE_data_table")
     )
   })
