@@ -322,9 +322,9 @@ server <- function(input, output, session) {
       
       if(isTRUE(WBgeneID_check)){
         
-        convertfromWBID <- CelEsT_BM[match(row.names(userdata), CelEsT_BM$wbps_gene_id), c("wormbase_gseq", "wormbase_gene")]
+        convertfromWBID <- CelEsT_BM[match(row.names(userdata), CelEsT_BM$wbps_gene_id), c("wormbase_gseq", "wbps_gene_id")]
         uniquegseq_fromWBID <- convertfromWBID[!(duplicated(convertfromWBID$wormbase_gseq)|duplicated(convertfromWBID$wormbase_gseq, fromLast = TRUE)), "wormbase_gseq"]
-        userdata <- userdata[match(convertfromWBID[match(uniquegseq_fromWBID, convertfromWBID$wormbase_gseq), "wormbase_gene"], row.names(userdata)), , drop = FALSE]
+        userdata <- userdata[match(convertfromWBID[match(uniquegseq_fromWBID, convertfromWBID$wormbase_gseq), "wbps_gene_id"], row.names(userdata)), , drop = FALSE]
         
         row.names(userdata) <- uniquegseq_fromWBID
         
