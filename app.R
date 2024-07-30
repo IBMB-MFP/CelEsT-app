@@ -302,8 +302,8 @@ server <- function(input, output, session) {
     
     gseq_check <- any(str_remove(row.names(userdata), "\\.[a-z]{1,2}$") %in% CelEsT_BM$wormbase_gseq)
     entrezGeneID_check <- any(row.names(userdata) %in% CelEsT_BM$entrezgene_id)
-    WBgeneID_check <- any(row.names(userdata) %in% CelEsT_BM$wormbase_gene)
-    genename_check <- any(row.names(userdata) %in% CelEsT_BM$external_gene_name)
+    WBgeneID_check <- any(row.names(userdata) %in% CelEsT_BM$wbps_gene_id)
+    genename_check <- any(row.names(userdata) %in% CelEsT_BM$wormbase_locus)
     
     shiny::validate(need(sum(c(gseq_check, entrezGeneID_check, WBgeneID_check, genename_check)) == 1,
                   "Gene IDs are inconsistent or absent; please revise. We accept WormBase sequence IDs, entrezgene IDs or WormBase IDs"))
@@ -322,7 +322,7 @@ server <- function(input, output, session) {
       
       if(isTRUE(WBgeneID_check)){
         
-        convertfromWBID <- CelEsT_BM[match(row.names(userdata), CelEsT_BM$wormbase_gene), c("wormbase_gseq", "wormbase_gene")]
+        convertfromWBID <- CelEsT_BM[match(row.names(userdata), CelEsT_BM$wbps_gene_id), c("wormbase_gseq", "wormbase_gene")]
         uniquegseq_fromWBID <- convertfromWBID[!(duplicated(convertfromWBID$wormbase_gseq)|duplicated(convertfromWBID$wormbase_gseq, fromLast = TRUE)), "wormbase_gseq"]
         userdata <- userdata[match(convertfromWBID[match(uniquegseq_fromWBID, convertfromWBID$wormbase_gseq), "wormbase_gene"], row.names(userdata)), , drop = FALSE]
         
@@ -627,7 +627,7 @@ server <- function(input, output, session) {
     gseq_check <- any(str_remove(row.names(uploading_counts), "\\.[a-z]{1,2}$") %in% CelEsT_BM$wormbase_gseq)
     entrezGeneID_check <- any(row.names(uploading_counts) %in% CelEsT_BM$entrezgene_id)
     WBgeneID_check <- any(row.names(uploading_counts) %in% CelEsT_BM$wbps_gene_id)
-    genename_check <- any(row.names(uploading_counts) %in% CelEsT_BM$external_gene_name)
+    genename_check <- any(row.names(uploading_counts) %in% CelEsT_BM$wormbase_locus)
     
     shiny::validate(need(sum(c(gseq_check, entrezGeneID_check, WBgeneID_check, genename_check)) == 1,
                   "Gene IDs are inconsistent or absent; please revise. We accept WormBase sequence IDs, entrezgene IDs or WormBase IDs"))
@@ -971,7 +971,7 @@ server <- function(input, output, session) {
     gseq_check <- any(str_remove(row.names(DEdata), "\\.[a-z]{1,2}$") %in% CelEsT_BM$wormbase_gseq)
     entrezGeneID_check <- any(row.names(DEdata) %in% CelEsT_BM$entrezgene_id)
     WBgeneID_check <- any(row.names(DEdata) %in% CelEsT_BM$wbps_gene_id)
-    genename_check <- any(row.names(DEdata) %in% CelEsT_BM$external_gene_name)
+    genename_check <- any(row.names(DEdata) %in% CelEsT_BM$wormbase_locus)
     
     shiny::validate(need(sum(c(gseq_check, entrezGeneID_check, WBgeneID_check, genename_check)) == 1,
                   "Gene IDs are inconsistent or absent; please revise. We accept WormBase sequence IDs, entrezgene IDs or WormBase IDs"))
