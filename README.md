@@ -22,3 +22,7 @@ Love, MI et al. (2014) Moderated estimation of fold change and dispersion for RN
 If you choose to control for developmental age in your analysis, cite:
 
 Bulteau, R & Francesconi, M. (2022) Real age prediction from the transcriptome with RAPToR. Nature Methods, doi: 10.1038/s41592-022-01450-0
+
+UPDATES:
+
+2024-10-27: Functionality added to choose alternative networks.
