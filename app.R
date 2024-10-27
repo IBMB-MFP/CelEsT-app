@@ -144,6 +144,7 @@ ui <- dashboardPage(
                   collapsible = TRUE,
                   width = 12,
                   fileInput("userdata", "Input DE_stats", placeholder = "Two-column tab-separated file with gene IDs in 1st column and DE stats in 2nd column"),
+                  uiOutput("net_DEselection"),
                   actionButton("compute", "Compute TF activities", class = "btn-primary"),
                   textOutput("status_message")
                 )
@@ -172,6 +173,7 @@ ui <- dashboardPage(
                   textInput("treatment_samples", "Treatment Samples", placeholder = "Enter treatment sample names separated by comma (without quotation marks)s"),
                   checkboxInput("correct_speed", "Correct for developmental speed using RAPToR?", value = FALSE),
                   uiOutput("age_selection"),
+                  uiOutput("net_selection"),
                   actionButton("counts_compute", "Compute DE & TF activities", class = "btn-primary")
                 )
               ),
@@ -220,6 +222,14 @@ server <- function(input, output, session) {
                        sep = "\t",
                        header = TRUE)
   
+  orthCelEsT <- read.table("./www/orthCelEsT.txt",
+                           sep = "\t",
+                           header = TRUE)
+  
+  maxCelEsT <- read.table("./www/maxCelEsT.txt",
+                          sep = "\t",
+                          header = TRUE)
+  
   CelEsT_BM <- readRDS("./www/CelEsT_BM.rds")
   
   fullset_TFs_BM <- read.table("./www/fullset_TFs_BM_with_MOR_for_TS2.txt",
@@ -228,6 +238,18 @@ server <- function(input, output, session) {
 
 #### CODE FOR ANALYSIS FROM DE STATS ####
   
+  output$net_DEselection <- renderUI({
+    radioButtons("DEnet_choice", "Choose your network:",
+                 choices = list("CelEsT (487 TFs - recommended)" = "CelEsT",
+                                "orthCelEsT (469 TFs)" = "orthCelEsT",
+                                "maxCelEsT (506 TFs)" = "maxCelEsT"),
+                 selected = "CelEsT")
+  })
+  
+  observeEvent(input$compute, {
+    # Use isolate to update the reactiveVal only when the button is clicked
+    DEnet_choice <- isolate(input$DE_netchoice)
+  })
   
   # Reactive expression to handle data upload
   uploading <- reactive({
@@ -337,9 +359,11 @@ server <- function(input, output, session) {
       
     }
     
+    DEchosen_net <- get(input$DEnet_choice)
+    
     userdata_decouple <- decoupleR::decouple(
       mat = userdata[, 1, drop = FALSE], 
-      network = CelEsT,
+      network = DEchosen_net,
       .source = "source",
       .target = "target",
       statistics = "mlm",
@@ -536,7 +560,7 @@ server <- function(input, output, session) {
     # Use isolate to update the reactiveVal only when the button is clicked
     control_samples <- isolate(input$control_samples)
     treatment_samples <- isolate(input$treatment_samples)
-    
+    net_choice <- isolate(input$net_choice)
   })
   
   observe({
@@ -560,6 +584,14 @@ server <- function(input, output, session) {
     }
   })
   
+  output$net_selection <- renderUI({
+    radioButtons("net_choice", "Choose your network:",
+                 choices = list("CelEsT (487 TFs - recommended)" = "CelEsT",
+                                "orthCelEsT (469 TFs)" = "orthCelEsT",
+                                "maxCelEsT (506 TFs)" = "maxCelEsT"
+                 ),
+                 selected = "CelEsT")
+  })
   
   observeEvent(input$counts_compute, {
     if (is.null(input$counts_userdata)) {
@@ -1004,9 +1036,11 @@ server <- function(input, output, session) {
       
     }
     
+    chosen_net <- get(input$net_choice)
+    
     DEdata_decouple <- decoupleR::decouple(
       mat = DEdata[, "stat", drop = FALSE], 
-      network = CelEsT,
+      network = chosen_net,
       .source = "source",
       .target = "target",
       statistics = "mlm",
