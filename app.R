@@ -60,8 +60,8 @@ bioc_package.check <- lapply(
 
 # Here define packages to be loaded through Github
 
-github_packages <- c("RAPToR",
-                     "wormRef") 
+github_packages <- c("LBMC/RAPToR",
+                     "LBMC/wormRef") 
 
 if (!requireNamespace("devtools", quietly = TRUE)){
   install.packages("devtools")}
