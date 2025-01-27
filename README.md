@@ -26,3 +26,25 @@ Bulteau, R & Francesconi, M. (2022) Real age prediction from the transcriptome w
 UPDATES:
 
 2024-10-27: Functionality added to choose alternative networks.
+
+2025-01-27
+N.B. ERRORS INSTALLING GITHUB PACKAGES ON SOME OPERATING SYSTEMS
+
+Some users have reported problems installing the Github packages LBMC/RAPToR and LBMC/wormRef on first use of the app. This may be because of Github peronal access tokens (PAT) stored locally - the error message may mention 'bad credentials'.
+
+In this case, I recommend that users install and load the 'gitcreds' package from CRAN (run code "install.packages('gitcreds')" and load with "library('gitcreds')". 
+
+Run these lines to check for tokens:
+
+Sys.getenv("GITHUB_TOKEN")
+Sys.getenv("GITHUB_PAT")
+gitcreds::gitcreds_get()
+gitcreds::gitcreds_get()$password
+
+Then remove them with this function:
+
+gitcreds::gitcreds_delete()
+
+The Github packages should now install without further problems.
+
+ 
