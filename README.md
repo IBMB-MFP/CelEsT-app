@@ -25,12 +25,20 @@ Bulteau, R & Francesconi, M. (2022) Real age prediction from the transcriptome w
 
 UPDATES:
 
-2024-10-27: Functionality added to choose alternative networks.
+*2024-10-27*: 
 
-2025-01-27
+1) Functionality added to choose alternative networks.
+
+*2025-02-20*
+
+1) Bug fix causing errors running DE analysis + TF activity analysis from counts (including with sample data)
+2) Added CelEsT v1.1 network, with the same 487 TFs as the core network as reported in Perez 2024 (Genetics) but with significantly better performance. This was achieved by building the network as for CelEsT but ordering targets by conservation probability of the known in vitro binding motif or the de novo motif as reported for orthCelEsT. In this iteration, TF-target conservation probabilities were NOT adjusted for multiple corrections, allowing for relevant ordering of many more targets, thus boosting performance.
+
+MESSAGES:
+*2025-01-27*
 N.B. ERRORS INSTALLING GITHUB PACKAGES ON SOME OPERATING SYSTEMS
 
-Some users have reported problems installing the Github packages LBMC/RAPToR and LBMC/wormRef on first use of the app. This may be because of Github peronal access tokens (PAT) stored locally - the error message may mention 'bad credentials'.
+Some users have reported problems installing the Github packages LBMC/RAPToR and LBMC/wormRef on first use of the app. This may be because of Github personal access tokens (PAT) stored locally - the error message may mention 'bad credentials'.
 
 In this case, I recommend that users install and load the 'gitcreds' package from CRAN (run code "install.packages('gitcreds')" and load with "library('gitcreds')". 
 
