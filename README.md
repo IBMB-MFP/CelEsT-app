@@ -32,7 +32,7 @@ Bulteau, R & Francesconi, M. (2022) Real age prediction from the transcriptome w
 **2025-02-20**
 
 1) Bug fix causing errors running DE analysis + TF activity analysis from counts (including with sample data)
-2) Added CelEsT v1.1 network, with the same 487 TFs as the core network as reported in Perez 2024 (Genetics) but with significantly better performance. This was achieved by building the network as for CelEsT but ordering targets by conservation probability of the known in vitro binding motif or the de novo motif as reported for orthCelEsT. In this iteration, TF-target conservation probabilities were NOT adjusted for multiple corrections, allowing for relevant ordering of many more targets, thus boosting performance.
+2) Added CelEsT v1.1 network, with the same 487 TFs as the core network as reported in Perez 2024 (Genetics) but with significantly better performance. This was achieved by building the network as for CelEsT but ordering targets by conservation probability of the known in vitro binding motif or the de novo motif as reported for orthCelEsT. In compiling this network, TF-target conservation probabilities were NOT adjusted for multiple corrections, allowing for ordering of many more relevant targets with some conservation signal, thus boosting performance.
 
 ![](www/CelEsTv1.1.png)
 
