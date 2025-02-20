@@ -218,6 +218,10 @@ server <- function(input, output, session) {
     
   }
   
+  CelEsTv1pt1 <- read.table("./www/CelEsTv1pt1_GRN.txt",
+                       sep = "\t",
+                       header = TRUE)
+  
   CelEsT <- read.table("./www/CelEsT_GRN.txt",
                        sep = "\t",
                        header = TRUE)
@@ -240,10 +244,11 @@ server <- function(input, output, session) {
   
   output$net_DEselection <- renderUI({
     radioButtons("DEnet_choice", "Choose your network:",
-                 choices = list("CelEsT (487 TFs - recommended)" = "CelEsT",
+                 choices = list("CelEsT v1.1 (487 TFs - recommended)" = "CelEsTv1pt1",
+                                "CelEsT (487 TFs)" = "CelEsT",
                                 "orthCelEsT (469 TFs)" = "orthCelEsT",
                                 "maxCelEsT (506 TFs)" = "maxCelEsT"),
-                 selected = "CelEsT")
+                 selected = "CelEsT v1.1")
   })
   
   observeEvent(input$compute, {
@@ -586,11 +591,12 @@ server <- function(input, output, session) {
   
   output$net_selection <- renderUI({
     radioButtons("net_choice", "Choose your network:",
-                 choices = list("CelEsT (487 TFs - recommended)" = "CelEsT",
+                 choices = list("CelEsT v1.1 (487 TFs - recommended)" = "CelEsTv1pt1",
+                                "CelEsT (487 TFs)" = "CelEsT",
                                 "orthCelEsT (469 TFs)" = "orthCelEsT",
                                 "maxCelEsT (506 TFs)" = "maxCelEsT"
                  ),
-                 selected = "CelEsT")
+                 selected = "CelEsT v1.1")
   })
   
   observeEvent(input$counts_compute, {
@@ -610,9 +616,10 @@ server <- function(input, output, session) {
     userdata
   })
   
-  output$column_names <- renderPrint({
+  output$column_names <- renderText({
     req(uploading_counts())
-    colnames(uploading_counts())[2:ncol(uploading_counts())]
+    paste0("Sample identifiers (column headers in data):\n",
+    paste0(colnames(uploading_counts())[2:ncol(uploading_counts())], collapse = ", "))
   })
   
   counts_data_process <- eventReactive(input$counts_compute, {
@@ -1004,9 +1011,6 @@ server <- function(input, output, session) {
     entrezGeneID_check <- any(row.names(DEdata) %in% CelEsT_BM$entrezgene_id)
     WBgeneID_check <- any(row.names(DEdata) %in% CelEsT_BM$wbps_gene_id)
     genename_check <- any(row.names(DEdata) %in% CelEsT_BM$wormbase_locus)
-    
-    shiny::validate(need(sum(c(gseq_check, entrezGeneID_check, WBgeneID_check, genename_check)) == 1,
-                  "Gene IDs are inconsistent or absent; please revise. We accept WormBase sequence IDs, entrezgene IDs or WormBase IDs"))
     
     if(isFALSE(gseq_check)){
       
