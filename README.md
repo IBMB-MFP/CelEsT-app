@@ -1,7 +1,9 @@
 # CelEsT-app
-Shiny app for performing TF activity estimation in C. elegans with the CelEsT Gene Regulatory Network (Perez 2024 Genetics, [doi:10.1093/genetics/iyae189](https://academic.oup.com/genetics/advance-article/doi/10.1093/genetics/iyae189/7929675)) and the decoupleR package
+Shiny app for performing TF activity estimation in C. elegans with the *Cel*EsT Gene Regulatory Network (Perez 2024 Genetics, [doi:10.1093/genetics/iyae189](https://academic.oup.com/genetics/advance-article/doi/10.1093/genetics/iyae189/7929675)) and the decoupleR package
 
 Download the repository (click on the drop down arrow on the green 'Code' button and select 'Download ZIP'), unzip it and run the app.R file from within R using the runApp() function in the 'shiny' package or by opening the file and using the 'Run App' button within 'R Studio'.
+
+**A step-by-step guide to using the *Cel*EsT Shiny app can be found [here](https://www.protocols.io/view/coding-free-differential-tf-activity-estimation-fr-5qpvok6exl4o/v1).**
 
 The first time the app runs on the local machine it should install all necessary packages. This may take a few minutes.
 
@@ -32,7 +34,7 @@ If you choose to control for developmental age in your analysis, cite:
 **2025-02-20**
 
 1) Bug fix causing errors running DE analysis + TF activity analysis from counts (including with sample data)
-2) Added CelEsT v1.1 network, with the same 487 TFs as the core network as reported in Perez 2024 (Genetics) but with significantly better performance. This was achieved by building the network as for CelEsT but ordering targets by conservation probability of the known in vitro binding motif or the de novo motif as reported for orthCelEsT. In compiling this network, TF-target conservation probabilities were NOT adjusted for multiple corrections, allowing for ordering of many more relevant targets with some conservation signal, thus boosting performance.
+2) Added *Cel*EsT v1.1 network, with the same 487 TFs as the core network as reported in Perez 2024 (Genetics) but with significantly better performance. This was achieved by building the network as for *Cel*EsT but ordering targets by conservation probability of the known in vitro binding motif or the de novo motif as reported for orthCelEsT. In compiling this network, TF-target conservation probabilities were NOT adjusted for multiple corrections, allowing for ordering of many more relevant targets with some conservation signal, thus boosting performance.
 
 ![](www/CelEsTv1.1.png)
 
