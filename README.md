@@ -1,5 +1,5 @@
 # CelEsT-app
-Shiny app for performing TF activity estimation in C. elegans with the CelEsT Gene Regulatory Network (Perez 2024 Genetics, doi:10.1093/genetics/iyae189) and the decoupleR package
+Shiny app for performing TF activity estimation in C. elegans with the CelEsT Gene Regulatory Network (Perez 2024 Genetics, [doi:10.1093/genetics/iyae189](https://academic.oup.com/genetics/advance-article/doi/10.1093/genetics/iyae189/7929675)) and the decoupleR package
 
 Download the repository (click on the drop down arrow on the green 'Code' button and select 'Download ZIP'), unzip it and run the app.R file from within R using the runApp() function in the 'shiny' package or by opening the file and using the 'Run App' button within 'R Studio'.
 
